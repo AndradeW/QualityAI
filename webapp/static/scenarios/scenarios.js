@@ -307,6 +307,15 @@ function generateReport() {
     window.location.href = '/static/report/';
 }
 
+function startModule3() {
+    if (!currentContractB) {
+        alert('No hay datos para continuar al Code Generator');
+        return;
+    }
+    localStorage.setItem('contractB', JSON.stringify(currentContractB));
+    window.location.href = '/static/code/';
+}
+
 function showLoading(message) {
     document.getElementById('loadingMessage').textContent = message;
     document.getElementById('loadingModal').classList.remove('hidden');

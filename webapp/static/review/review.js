@@ -181,6 +181,11 @@ function submitReview() {
         recalculateCoverageMatrix();
     }
 
+    // Inyectar reviewer en cada entrada del change_history (campo requerido por ReviewChange Pydantic)
+    for (const entry of reviewChanges) {
+        entry.reviewer = reviewerName;
+    }
+
     // Agregar metadata de revisión
     contractB.review = {
         reviewer_name: reviewerName,

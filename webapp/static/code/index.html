@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QualityAI - Code Generator (M3)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .tab-active { border-bottom: 3px solid #667eea; color: #667eea; font-weight: 600; }
+        .loading-spinner { border: 3px solid #f3f4f6; border-top: 3px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+        .badge-pass { background: #d1fae5; color: #065f46; }
+        .badge-fail { background: #fee2e2; color: #991b1b; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="gradient-bg text-white p-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="/" class="text-2xl font-bold"><i class="fas fa-code mr-2"></i>QualityAI</a>
+                <span class="text-purple-200 text-sm">M3 - Code Generator</span>
+            </div>
+            <div class="flex space-x-2">
+                <a href="/static/scenarios/" class="px-4 py-2 bg-white bg-opacity-20 rounded-lg text-sm hover:bg-opacity-30 transition"><i class="fas fa-vial mr-1"></i>Escenarios</a>
+                <a href="/static/report/" class="px-4 py-2 bg-white bg-opacity-20 rounded-lg text-sm hover:bg-opacity-30 transition"><i class="fas fa-chart-bar mr-1"></i>Reporte</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800"><i class="fas fa-robot text-indigo-600 mr-2"></i>Code Generator</h1>
+                    <p class="text-gray-600 mt-1">Genera codigo Python + tests desde escenarios Gherkin (Contract B -> Contract C)</p>
+                </div>
+                <button id="generateBtn" onclick="generateCode()" class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl">
+                    <i class="fas fa-play mr-2"></i>Generar Codigo
+                </button>
+            </div>
+            <div id="statusBar" class="mt-4 hidden">
+                <div class="flex items-center space-x-3 text-gray-600">
+                    <div class="loading-spinner"></div>
+                    <span id="statusMessage">Procesando...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="flex border-b border-gray-200">
+                <button onclick="switchTab('code')" id="tab-code" class="tab-active flex-1 px-6 py-4 text-center text-sm font-medium hover:bg-gray-50 transition">
+                    <i class="fas fa-file-code mr-2"></i>Codigo Generado
+                </button>
+                <button onclick="switchTab('quality')" id="tab-quality" class="flex-1 px-6 py-4 text-center text-sm font-medium text-gray-500 hover:bg-gray-50 transition">
+                    <i class="fas fa-chart-line mr-2"></i>Reportes de Calidad
+                </button>
+                <button onclick="switchTab('review')" id="tab-review" class="flex-1 px-6 py-4 text-center text-sm font-medium text-gray-500 hover:bg-gray-50 transition">
+                    <i class="fas fa-user-check mr-2"></i>Revision Senior (HITL)
+                </button>
+            </div>
+
+            <!-- Tab 1: Codigo Generado -->
+            <div id="content-code" class="tab-content p-6">
+                <div id="noCodePlaceholder" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-file-code text-6xl mb-4 text-gray-300"></i>
+                    <p class="text-lg">Aun no hay codigo generado</p>
+                    <p class="text-sm">Haz clic en "Generar Codigo" para comenzar</p>
+                </div>
+                <div id="codeResults" class="hidden space-y-6"></div>
+            </div>
+
+            <!-- Tab 2: Reportes de Calidad -->
+            <div id="content-quality" class="tab-content hidden p-6">
+                <div id="noQualityPlaceholder" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-chart-line text-6xl mb-4 text-gray-300"></i>
+                    <p class="text-lg">Reportes de calidad no disponibles</p>
+                    <p class="text-sm">Genera el codigo primero para ver las metricas</p>
+                </div>
+                <div id="qualityResults" class="hidden space-y-6"></div>
+            </div>
+
+            <!-- Tab 3: Revision Senior (HITL) -->
+            <div id="content-review" class="tab-content hidden p-6">
+                <div id="noReviewPlaceholder" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-user-check text-6xl mb-4 text-gray-300"></i>
+                    <p class="text-lg">Revision no disponible</p>
+                    <p class="text-sm">Primero genera el codigo para poder revisarlo</p>
+                </div>
+                <div id="reviewResults" class="hidden space-y-6"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="code.js"></script>
+</body>
+</html>

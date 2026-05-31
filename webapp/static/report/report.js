@@ -489,6 +489,15 @@ function generateRecommendations() {
     `;
 }
 
+function startModule3() {
+    const contractB = JSON.parse(localStorage.getItem('contractB'));
+    if (!contractB) {
+        alert('No hay Contract B disponible.');
+        return;
+    }
+    window.location.href = '/static/code/';
+}
+
 function submitApproval() {
     const clientName = document.getElementById('clientName').value.trim();
     const clientPosition = document.getElementById('clientPosition').value.trim();
