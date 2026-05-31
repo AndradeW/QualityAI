@@ -53,6 +53,74 @@ collection = None
 code_collection = None
 detector = AmbiguityDetector()
 
+# ---- Mock LLM responses para pruebas offline ----
+# Activar con: $env:MOCK_LLM="true"
+_MOCK = os.environ.get("MOCK_LLM", "").lower() in ("1", "true", "yes")
+
+MOCK_REFINE = {
+    "project_context": "Mock project for offline testing",
+    "user_stories": [{
+        "id": "US-001",
+        "title": "Calculator basic operations",
+        "story_type": "functional",
+        "priority": "high",
+        "as_a": "user",
+        "i_want": "perform basic calculator operations",
+        "so_that": "I can compute results",
+        "acceptance_criteria": [{
+            "id": "AC-001",
+            "description": "Add two numbers correctly",
+            "given": "the user has a calculator",
+            "when": "the user adds 2 and 3",
+            "then": "the result should be 5",
+            "test_data_examples": [{"a": 2, "b": 3, "expected": 5}],
+            "is_negative_case": False,
+            "boundary_values": ["0"],
+        }],
+        "business_rules": [],
+        "dependencies": [],
+        "ui_elements": [],
+        "api_endpoints": [],
+        "ambiguities_resolved": [],
+    }],
+}
+
+MOCK_SCENARIO = {
+    "scenarios": [{
+        "name": "Add two positive numbers correctly",
+        "scenario_type": "positive",
+        "quality_characteristic": "functional_suitability",
+        "steps": [
+            {"keyword": "Given", "text": "the user has a calculator"},
+            {"keyword": "When", "text": "the user adds 2 and 3"},
+            {"keyword": "Then", "text": "the result should be 5"},
+        ],
+    }],
+}
+
+MOCK_CODE_GEN = {
+    "modules": [{
+        "filename": "calculator.py",
+        "source_code": (
+            "def add(a, b):\n    return a + b\n\n"
+            "def subtract(a, b):\n    return a - b\n\n"
+            "def multiply(a, b):\n    return a * b\n"
+        ),
+        "description": "Mock calculator - basic arithmetic",
+    }],
+    "tests": [{
+        "test_name": "test_add",
+        "source_code": (
+            "from calculator import add, subtract\n\n"
+            "def test_add():\n    assert add(2, 3) == 5\n"
+            "    assert add(-1, 1) == 0\n\n"
+            "def test_subtract():\n    assert subtract(5, 3) == 2\n"
+        ),
+        "target_module": "calculator.py",
+        "scenario_ids": ["AC-001"],
+    }],
+}
+
 
 def init_models():
     """Inicializa los modelos y la base de conocimiento"""
@@ -372,17 +440,22 @@ REQUERIMIENTO:
 {requerimiento_enriquecido}"""
 
         # 6. Llamar a Groq
-        respuesta = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=0.3,
-            max_tokens=4000,
-        )
-
-        respuesta_raw = respuesta.choices[0].message.content
+        if _MOCK:
+            print("[MOCK] Devolviendo respuesta mock para refine_requirements", flush=True)
+            respuesta_raw = json.dumps(MOCK_REFINE)
+            # Mock minimal response object para tokens_used
+            respuesta = type('MockResp', (), {'usage': type('MockUsage', (), {'total_tokens': 0})()})()
+        else:
+            respuesta = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=0.3,
+                max_tokens=4000,
+            )
+            respuesta_raw = respuesta.choices[0].message.content
 
         # 7. Parsear JSON
         text = respuesta_raw.strip()
@@ -675,18 +748,21 @@ def generar_escenarios_v3_completo(
                 f"y CLASIFICA cada uno con su característica ISO/IEC 25010."
             )
 
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.0,
-                seed=42,
-                max_tokens=2500,
-            )
-
-            raw_text = response.choices[0].message.content
+            if _MOCK:
+                print("[MOCK] Devolviendo respuesta mock para generar_escenarios_v3_completo", flush=True)
+                raw_text = json.dumps(MOCK_SCENARIO)
+            else:
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.0,
+                    seed=42,
+                    max_tokens=2500,
+                )
+                raw_text = response.choices[0].message.content
 
             text = raw_text.strip()
             if "```json" in text:
@@ -1275,19 +1351,24 @@ def pipeline_m3_completo(contract_b_data: dict, client: Groq) -> dict:
         feature_dict = feature.model_dump()
         patrones = buscar_patrones_codigo(feature_dict, top_k=3)
         system_prompt, user_message = construir_prompt_codigo(feature_dict, patrones)
-        raw_response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=0.0,
-            seed=42,
-            max_tokens=6000,
-        )
+        if _MOCK:
+            print("[MOCK] Devolviendo respuesta mock para pipeline_m3_completo V1", flush=True)
+            raw_content = json.dumps(MOCK_CODE_GEN)
+        else:
+            raw_response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=0.0,
+                seed=42,
+                max_tokens=6000,
+            )
+            raw_content = raw_response.choices[0].message.content
         try:
             modulos, tests = parsear_respuesta_codigo(
-                raw_response.choices[0].message.content,
+                raw_content,
                 feature.user_story_id,
             )
             todos_modulos.extend(modulos)
@@ -1452,7 +1533,10 @@ def review_contract_c():
 
 
 if __name__ == '__main__':
-    print("Iniciando QualityAI Web App...")
+    import sys as _sys
+    print("Iniciando QualityAI Web App...", flush=True)
+    _sys.stdout.flush()
     init_models()
-    print("Servidor listo en http://localhost:3000")
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    _sys.stdout.flush()
+    print("Servidor listo en http://localhost:3000", flush=True)
+    app.run(debug=False, host='0.0.0.0', port=3000)
