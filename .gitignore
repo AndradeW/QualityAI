@@ -24,3 +24,6 @@ webapp/knowledge_base_data/
 *.log
 flask_*.txt
 verify_*.txt
+
+# Nested independent repos (educational material)
+/modulo3_code_generator/venv
