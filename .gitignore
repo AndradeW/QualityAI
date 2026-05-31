@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Virtual environment
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Environment (contains API keys)
+.env
+
+# Generated output (reproducible)
+webapp/output/
+
+# ChromaDB vector store (reproducible from katary_stories.json)
+webapp/knowledge_base_data/
+
+# Temp / log files
+*.log
+flask_*.txt
+verify_*.txt

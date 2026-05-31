@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revisión Humana - QualityAI V4</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+        <!-- Paleta consistente: Indigo-Purple -->
+        <div class="container mx-auto px-6 py-4">
+            <h1 class="text-2xl font-bold">
+                <i class="fas fa-clipboard-check mr-2"></i>
+                Revisión y Aprobación de Escenarios
+            </h1>
+            <p class="text-blue-100 text-sm">Revisa cada escenario de prueba y aprueba el resultado final</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 max-w-6xl">
+        <!-- Progreso -->
+        <div id="progressSection" class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">
+                    <i class="fas fa-tasks mr-2 text-indigo-600"></i>
+                    Tu Progreso
+                </h2>
+                <span id="progress" class="text-lg font-semibold text-indigo-600">0 / 0</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-4">
+                <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-4 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Escenario actual -->
+        <div id="scenarioCard" class="bg-white rounded-lg shadow-lg p-8 mb-6">
+            <!-- Se llenará dinámicamente -->
+        </div>
+
+        <!-- Opciones de ajuste -->
+        <div id="adjustmentSection" class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 class="text-lg font-bold mb-4">
+                <i class="fas fa-sliders-h mr-2 text-blue-600"></i>
+                Ajustar Clasificación (Opcional)
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">Si consideras que este escenario está mal clasificado, puedes ajustarlo aquí:</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">¿Qué aspecto de calidad prueba este escenario?</label>
+                    <select id="qualityChar" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                        <option value="functional_suitability">Funcionalidad Correcta</option>
+                        <option value="security">Seguridad</option>
+                        <option value="usability">Facilidad de Uso</option>
+                        <option value="performance_efficiency">Rendimiento</option>
+                        <option value="reliability">Confiabilidad</option>
+                        <option value="compatibility">Compatibilidad</option>
+                        <option value="maintainability">Mantenibilidad</option>
+                        <option value="portability">Portabilidad</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2">¿Qué tipo de caso es?</label>
+                    <select id="scenarioType" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none">
+                        <option value="positive">Caso Positivo (funciona bien)</option>
+                        <option value="negative">Caso Negativo (debe fallar)</option>
+                        <option value="boundary">Valor Límite</option>
+                        <option value="edge_case">Caso Extremo</option>
+                        <option value="error_handling">Manejo de Errores</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-2">Notas o comentarios (opcional):</label>
+                <textarea id="reviewNotes" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" rows="3" placeholder="Escribe aquí cualquier observación sobre este escenario..."></textarea>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="acceptScenario()" class="flex-1 px-6 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-bold hover:from-emerald-600 hover:to-emerald-700 shadow-lg">
+                    <i class="fas fa-check-circle mr-2"></i>Aprobar Este Escenario
+                </button>
+                <button onclick="reclassifyScenario()" class="flex-1 px-6 py-3 bg-orange-600 text-white rounded-lg font-bold hover:bg-orange-700">
+                    <i class="fas fa-edit mr-2"></i>Reclasificar
+                </button>
+                <button onclick="skipScenario()" class="flex-1 px-6 py-3 bg-gray-500 text-white rounded-lg font-bold hover:bg-gray-600">
+                    <i class="fas fa-forward mr-2"></i>Saltar
+                </button>
+            </div>
+        </div>
+
+        <!-- Decisión final -->
+        <div id="finalDecision" class="hidden bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold mb-6">Decisión Final del Analista</h2>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-semibold mb-2">Nombre del Analista de QA:</label>
+                <input type="text" id="reviewerName" class="w-full px-4 py-2 border rounded-lg" placeholder="Tu nombre completo">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-semibold mb-2">Decisión:</label>
+                <select id="reviewDecision" class="w-full px-4 py-2 border rounded-lg">
+                    <option value="approved">✅ APROBAR - Los escenarios están listos para producción</option>
+                    <option value="changes_requested">⚠️ SOLICITAR CAMBIOS - Requiere ajustes antes de aprobar</option>
+                    <option value="rejected">❌ RECHAZAR - Los escenarios no cumplen con los estándares</option>
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-semibold mb-2">Comentarios Finales:</label>
+                <textarea id="finalNotes" class="w-full px-4 py-2 border rounded-lg" rows="4" placeholder="Comentarios generales sobre la revisión..."></textarea>
+            </div>
+
+            <button onclick="submitReview()" class="w-full px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-bold text-lg hover:from-emerald-700 hover:to-teal-700 shadow-lg">
+                <i class="fas fa-signature mr-2"></i>Firmar y Completar Revisión
+            </button>
+        </div>
+    </main>
+
+    <script src="review.js"></script>
+    <!-- Archivo movido a /static/review/ -->
+</body>
+</html>
